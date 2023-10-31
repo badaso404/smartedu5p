@@ -9,8 +9,20 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import {Header} from './../../assets';
+import axios from 'axios';
 
 const Profile = () => {
+
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    axios.get('https://api-dev.smartedu5p.com/api/v1/users/me').then((result)=> {
+      setData(result.data.data.user);
+    }).finally(() => setLoading(false))
+  })
+
+
   return (
     <View style={{flex: 1}}>
       <StatusBar barStyle={'light-content'} backgroundColor="#212121" />
@@ -45,10 +57,10 @@ const Profile = () => {
               textAlign: 'center',
               color: '#ffff',
             }}>
-            Bagas Pratama
+            {loading ? 'Loading...' : data.fullName}
           </Text>
           <Text style={{textAlign: 'center', color: '#ffff',}}>
-            sedang menonton bioskop
+            {loading ? 'Loading...' : data.role}
           </Text>
           <View style={{marginLeft: 20}}>
             <View
@@ -68,7 +80,7 @@ const Profile = () => {
                 <Icon name="mobile-alt" size={25} color="red" />
               </View>
               <View style={{justifyContent: 'center', marginLeft: 10, flex: 1}}>
-                <Text style={{fontWeight: 'bold'}}>Bagas Pratama</Text>
+                <Text style={{fontWeight: 'bold'}}>{loading ? 'Loading...' : data.username}</Text>
               </View>
             </View>
             <View
@@ -87,7 +99,7 @@ const Profile = () => {
                 <Icon name="map-marker-alt" size={25} color="red" />
               </View>
               <View style={{justifyContent: 'center', marginLeft: 10, flex: 1}}>
-                <Text style={{fontWeight: 'bold'}}>Surakarta</Text>
+                <Text style={{fontWeight: 'bold'}}>{loading ? 'Loading...' : data.school.sekolah + ", " + data.school.alamat_jalan}</Text>
               </View>
             </View>
             <View
@@ -107,7 +119,7 @@ const Profile = () => {
               </View>
               <View style={{justifyContent: 'center', marginLeft: 10, flex: 1}}>
                 <Text style={{fontWeight: 'bold'}}>
-                  Kuda@gmail.com
+                  {loading ? 'Loading...' : data.email}
                 </Text>
               </View>
             </View>

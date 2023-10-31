@@ -17,7 +17,6 @@ import {InputData} from '../../../../components';
 import FIREBASE from '../../../../config/FIREBASE'
 import {useNavigation} from '@react-navigation/native';
 
-
 export default class TambahProject extends Component {
   constructor(props) {
     super(props);

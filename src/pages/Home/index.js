@@ -6,13 +6,23 @@ import {
   View,
   Image,
 } from 'react-native';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {Header, Logo} from '../../assets';
 import {ButtonIcon, SliderNews} from '../../components';
 import {useNavigation} from '@react-navigation/native';
+import axios from 'axios';
 
 const Home = () => {
   const navigation = useNavigation();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    axios.get('https://api-dev.smartedu5p.com/api/v1/users/me').then((result)=> {
+      setData(result.data.data.user);
+    }).finally(() => setLoading(false))
+  })
+  
   return (
     <View style={styles.page}>
       <ImageBackground source={Header} style={styles.header}>
@@ -23,7 +33,7 @@ const Home = () => {
         <View style={styles.hello}>
           <ButtonIcon title="" type="profile" onPress={() => navigation.navigate('Profile')}/>
           <Text style={styles.selamat}> Selamat Datang,</Text>
-          <Text style={styles.username}> Bagas</Text>
+          <Text style={styles.username}> {loading ? 'Loading...' : data.fullName}</Text>
         </View>
       </ImageBackground>
       <Text style={styles.layanan1}>Hii Teman-teman</Text>

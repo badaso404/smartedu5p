@@ -6,6 +6,7 @@ import {useNavigation} from '@react-navigation/native';
 import FIREBASE from '../../../config/FIREBASE';
 import { CardProject } from '../../../components';
 import {Header1} from '../../../assets';
+import axios from 'axios';
 
 const navigation = useNavigation();
 export default class Project extends Component {
@@ -19,7 +20,7 @@ export default class Project extends Component {
   }
 
   componentDidMount() {
-   this.ambilData()
+   this.ambilDataApi()
   }
 
   ambilData = () => {
@@ -34,6 +35,18 @@ export default class Project extends Component {
         kontaksKey: Object.keys(kontakItem),
       });
     });
+  }
+
+  ambilDataApi = () => {
+    // https://api-dev.smartedu5p.com/api/v1/projects
+    axios.get('https://api-dev.smartedu5p.com/api/v1/projects').then((result) => {
+      console.log(result.data.data)
+      let data = result.data.data;
+      this.setState({
+        kontaks: data.projects,
+        kontaksKey: Object.keys(data.projects)
+      })
+    })
   }
 
   removeData = (id)=> {

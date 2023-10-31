@@ -20,6 +20,8 @@ const Tabitem = ({isFocused, onPress, onLongPress, label}) => {
   const Icon = () => {
     if (label === 'Home')
       return isFocused ? <IcondashboardActive /> : <Icondashboard/>;
+    if (label === 'HomeT')
+      return isFocused ? <IcondashboardActive /> : <Icondashboard/>;
     if (label === 'Profile')
       return isFocused ? <IconaccountActive /> : <Iconaccount />;
     if (label === 'Save') 

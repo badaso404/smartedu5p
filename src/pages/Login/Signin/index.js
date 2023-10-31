@@ -77,8 +77,14 @@ const SignIn = () => {
       <TouchableOpacity
       onPress={async () => {
         const data = await postLogin();
-        console.log(data)
+        // if(data.status !== 'success'){
+        //   return 
+        // }
+        if(data.user.role === 'guru'){
         navigation.navigate('MainApp1')
+        }
+        if(data.user.role === 'siswa')
+        navigation.navigate('MainApp')
         }}
         style={{
           marginTop: 40,
