@@ -1,4 +1,10 @@
-import {View, Text, TouchableOpacity, StyleSheet, Pressable} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Pressable,
+} from 'react-native';
 import React from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome';
 import {faEdit, faTimes} from '@fortawesome/free-solid-svg-icons';
@@ -7,18 +13,21 @@ const CardProject = ({id, kontakItem, navigation, removeData}) => {
   return (
     <TouchableOpacity
       style={styles.container}
-      onPress={() => navigation.navigate('DetailProject', {id: id})}>
+      onPress={() => navigation.navigate('DetailProject', {id: kontakItem.id})}>
       <View>
-        <Text style={styles.project}>{kontakItem.project}</Text>
-        <Text style={styles.kelompok}>Team : {kontakItem.kelompok}</Text>
-        <Text style={styles.tanggal}>Tanggal : {kontakItem.tanggal}</Text>
+        <Text style={styles.project}>{kontakItem.name}</Text>
+        <Text style={styles.kelompok}>Topik : {kontakItem.topic}</Text>
+        <Text style={styles.tanggal}>Deskripsi : {kontakItem.description}</Text>
       </View>
       <View style={styles.icon}>
-      <Pressable onPress={() => navigation.navigate('EditProject', {id: id})}>
-        <FontAwesomeIcon icon={faEdit} color="#03a9f4" size={25} />
+        <Pressable
+          onPress={() =>
+            navigation.navigate('EditProject', {id: kontakItem.id})
+          }>
+          <FontAwesomeIcon icon={faEdit} color="#03a9f4" size={25} />
         </Pressable>
         <Pressable onPress={() => removeData(id)}>
-        <FontAwesomeIcon icon={faTimes} color="#FB0000" size={30} />
+          <FontAwesomeIcon icon={faTimes} color="#FB0000" size={30} />
         </Pressable>
       </View>
     </TouchableOpacity>
@@ -59,7 +68,7 @@ const styles = StyleSheet.create({
   icon: {
     alignItems: 'center',
     justifyContent: 'flex-end',
-    flex:1,
-    flexDirection: 'row'
+    flex: 1,
+    flexDirection: 'row',
   },
 });

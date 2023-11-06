@@ -7,15 +7,16 @@ import {
   ImageBackground,
   TextInput,
   TouchableOpacity,
-  Alert
+  Alert,
 } from 'react-native';
 import React from 'react';
 import {Header} from '../../../../assets';
 import LinearGradient from 'react-native-linear-gradient';
 import {InputData} from '../../../../components';
 
-import FIREBASE from '../../../../config/FIREBASE'
+import FIREBASE from '../../../../config/FIREBASE';
 import {useNavigation} from '@react-navigation/native';
+import axios from 'axios';
 
 export default class TambahProject extends Component {
   constructor(props) {
@@ -40,41 +41,51 @@ export default class TambahProject extends Component {
   };
 
   onSubmit = () => {
-    if (
-      this.state.topik &&
-      this.state.project &&
-      this.state.deskripsi &&
-      this.state.kelompok &&
-      this.state.pembimbing &&
-      this.state.ketua &&
-      this.state.anggota &&
-      this.state.tanggal
-    )
-    {  
-      const kontakReferensi = FIREBASE.database().ref('Kontak');
-      const kontak = {
-      topik: this.state.topik,
-      project: this.state.project,
-      deskripsi: this.state.deskripsi,
-      kelompok: this.state.kelompok,
-      pembimbing: this.state.pembimbing,
-      ketua: this.state.ketua,
-      anggota: this.state.anggota,
-      tanggal: this.state.tanggal,
-      }
+    if (this.state.topik && this.state.project && this.state.deskripsi) {
+      axios
+        .post('https://api-dev.smartedu5p.com/api/v1/projects', {
+          name: this.state.project,
+          topic: this.state.topik,
+          description: this.state.deskripsi,
+        })
+        .then(result => {
+          Alert.alert('Sukses', 'Berhasil membuat project');
+          this.props.navigation.replace('Project');
+        })
+        .catch(error => console.log(`Error : ${error.message}`));
 
-      kontakReferensi
-       .push(kontak)
-       .then((data)=> {
-        Alert.alert ('Sukses', 'Terimakasi sudah mengisi');
-        this.props.navigation.replace('Project');
-       })
-       .catch((error) => {
-        console.log("Error :", error);
-       })
-
-    }else {
-      Alert.alert ('Error', 'Semua wajib diisi')
+      //////////////////////////////////////////
+      //   this.state.topik &&
+      //   this.state.project &&
+      //   this.state.deskripsi &&
+      //   this.state.kelompok &&
+      //   this.state.pembimbing &&
+      //   this.state.ketua &&
+      //   this.state.anggota &&
+      //   this.state.tanggal
+      // ) {
+      //   const kontakReferensi = FIREBASE.database().ref('Kontak');
+      //   const kontak = {
+      //     topik: this.state.topik,
+      //     project: this.state.project,
+      //     deskripsi: this.state.deskripsi,
+      //     kelompok: this.state.kelompok,
+      //     pembimbing: this.state.pembimbing,
+      //     ketua: this.state.ketua,
+      //     anggota: this.state.anggota,
+      //     tanggal: this.state.tanggal,
+      //   };
+      //   kontakReferensi
+      //     .push(kontak)
+      //     .then(data => {
+      //       Alert.alert('Sukses', 'Terimakasi sudah mengisi');
+      //       this.props.navigation.replace('Project');
+      //     })
+      //     .catch(error => {
+      //       console.log('Error :', error);
+      //     });
+    } else {
+      Alert.alert('Error', 'Semua wajib diisi');
     }
   };
 

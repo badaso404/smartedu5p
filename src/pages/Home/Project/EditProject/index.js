@@ -6,16 +6,16 @@ import {
   Dimensions,
   ImageBackground,
   TextInput,
-  TouchableOpacity
+  TouchableOpacity,
 } from 'react-native';
 import React from 'react';
 import {Header} from '../../../../assets';
 import LinearGradient from 'react-native-linear-gradient';
 import {InputData} from '../../../../components';
-import { Alert } from 'react-native';
-import FIREBASE from '../../../../config/FIREBASE'
+import {Alert} from 'react-native';
+import FIREBASE from '../../../../config/FIREBASE';
 import {useNavigation} from '@react-navigation/native';
-
+import axios from 'axios';
 
 export default class EditProject extends Component {
   constructor(props) {
@@ -34,23 +34,31 @@ export default class EditProject extends Component {
   }
 
   componentDidMount() {
-    FIREBASE.database()
-      .ref('Kontak/'+ this.props.route.params.id)
-      .once('value', querrySnapShot => {
-        let data = querrySnapShot.val() ? querrySnapShot.val() : {};
-        let kontakItem = {...data};
+    // FIREBASE.database()
+    //   .ref('Kontak/'+ this.props.route.params.id)
+    //   .once('value', querrySnapShot => {
+    //     let data = querrySnapShot.val() ? querrySnapShot.val() : {};
+    //     let kontakItem = {...data};
+    // https://api-dev.smartedu5p.com/api/v1/projects/65047c14bc75fb57e15de6c0
 
+    axios
+      .get(
+        `https://api-dev.smartedu5p.com/api/v1/projects/${this.props.route.params.id}`,
+      )
+      .then(data => {
+        const {project} = data.data.data;
         this.setState({
-            topik: kontakItem.topik,
-            project: kontakItem.project,
-            deskripsi: kontakItem.deskripsi,
-            kelompok: kontakItem.kelompok,
-            pembimbing: kontakItem.pembimbing,
-            ketua: kontakItem.ketua,
-            anggota: kontakItem.anggota,
-            tanggal: kontakItem.tanggal,
+          topik: project.topic,
+          project: project.name,
+          deskripsi: project.description,
+          // kelompok: project.kelompok,
+          pembimbing: project.teacher?.fullName,
+          ketua: project.chairman.fullName,
+          // anggota: project.members.map(member => member.fullName).join(', '),
+          // tanggal: project.tanggal,
         });
       });
+    // });
   }
 
   onChangeText = (nameState, value) => {
@@ -63,43 +71,57 @@ export default class EditProject extends Component {
     if (
       this.state.topik &&
       this.state.project &&
-      this.state.deskripsi &&
-      this.state.kelompok &&
-      this.state.pembimbing &&
-      this.state.ketua &&
-      this.state.anggota &&
-      this.state.tanggal
-    )
-    {  
-      const kontakReferensi = FIREBASE.database().ref('Kontak/'+ this.props.route.params.id);
-      const kontak = {
-      topik: this.state.topik,
-      project: this.state.project,
-      deskripsi: this.state.deskripsi,
-      kelompok: this.state.kelompok,
-      pembimbing: this.state.pembimbing,
-      ketua: this.state.ketua,
-      anggota: this.state.anggota,
-      tanggal: this.state.tanggal,
-      }
+      this.state.deskripsi
+      // this.state.kelompok &&
+      // this.state.pembimbing &&
+      // this.state.ketua &&
+      // this.state.anggota &&
+      // this.state.tanggal
+    ) {
+      axios
+        .patch(
+          `https://api-dev.smartedu5p.com/api/v1/projects/${this.props.route.params.id}`,
+          {
+            topic: this.state.topik,
+            name: this.state.project,
+            description: this.state.deskripsi,
+          },
+        )
+        .then(() => {
+          Alert.alert('Sukses', 'Terimakasih data sudah terupdate');
+          this.props.navigation.replace('Project');
+        })
+        .catch(error => {
+          console.error('Error : ', error.response);
+        });
 
-      kontakReferensi
-       .update(kontak)
-       .then((data)=> {
-        Alert.alert ('Sukses', 'Terimakasih kontak sudah terupdate');
-        this.props.navigation.replace('Project');
-       })
-       .catch((error) => {
-        console.log("Error :", error);
-       })
+      // const kontakReferensi = FIREBASE.database().ref(
+      //   'Kontak/' + this.props.route.params.id,
+      // );
+      // const kontak = {
+      //   topik: this.state.topik,
+      //   project: this.state.project,
+      //   deskripsi: this.state.deskripsi,
+      //   kelompok: this.state.kelompok,
+      //   pembimbing: this.state.pembimbing,
+      //   ketua: this.state.ketua,
+      //   anggota: this.state.anggota,
+      //   tanggal: this.state.tanggal,
+      // };
 
-    }else {
-      Alert.alert ('Error', 'Semua wajib diisi')
+      // kontakReferensi
+      //   .update(kontak)
+      //   .then(data => {
+      //     Alert.alert('Sukses', 'Terimakasih kontak sudah terupdate');
+      //     this.props.navigation.replace('Project');
+      //   })
+      //   .catch(error => {
+      //     console.log('Error :', error);
+      //   });
+    } else {
+      Alert.alert('Error', 'Semua wajib diisi');
     }
   };
-
-
-
 
   render() {
     return (
