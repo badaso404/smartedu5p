@@ -16,6 +16,7 @@ import {Alert} from 'react-native';
 import FIREBASE from '../../../../config/FIREBASE';
 import {useNavigation} from '@react-navigation/native';
 import axios from 'axios';
+import DropDownPicker from 'react-native-dropdown-picker';
 
 export default class EditProject extends Component {
   constructor(props) {
@@ -30,16 +31,100 @@ export default class EditProject extends Component {
       ketua: '',
       anggota: '',
       tanggal: '',
+
+      // for Dropdown pembimbing
+      openPembimbing: false,
+      selectedPembimbing: null,
+      idSelectedPembimbing: null,
+      dataPembimbing: [],
+
+      // for Dropdown Anggota
+      openAnggota: false,
+      selectedAnggota: [],
+      idSelectedAnggota: [],
+      dataAnggota: [],
+
+      // data user login
+      user: {},
     };
+
+    this.setSelectedPembimbing = this.setSelectedPembimbing.bind(this);
+    this.setSelectedAnggota = this.setSelectedAnggota.bind(this);
   }
 
-  componentDidMount() {
+  setOpenPembimbing = openPembimbing => {
+    this.setState({
+      openPembimbing,
+    });
+  };
+  setDataPembimbing(callback) {
+    this.setState(state => ({
+      dataPembimbing: callback(state.items),
+    }));
+  }
+  setSelectedPembimbing(callback) {
+    this.setState(state => ({
+      selectedPembimbing: callback(state.value),
+    }));
+  }
+
+  setOpenAnggota = openAnggota => {
+    this.setState({
+      openAnggota,
+    });
+  };
+  setDataAnggota(callback) {
+    this.setState(state => ({
+      dataAnggota: callback(state.items),
+    }));
+  }
+  setSelectedAnggota(callback) {
+    this.setState(state => {
+      return {
+        selectedAnggota: callback(state.selectedAnggota),
+      };
+    });
+  }
+
+  async componentDidMount() {
     // FIREBASE.database()
     //   .ref('Kontak/'+ this.props.route.params.id)
     //   .once('value', querrySnapShot => {
     //     let data = querrySnapShot.val() ? querrySnapShot.val() : {};
     //     let kontakItem = {...data};
     // https://api-dev.smartedu5p.com/api/v1/projects/65047c14bc75fb57e15de6c0
+
+    await axios
+      .get('https://api-dev.smartedu5p.com/api/v1/users/me')
+      .then(result => {
+        const {user} = result.data.data;
+        this.setState({
+          user: user,
+        });
+      });
+
+    axios
+      .get(
+        `https://api-dev.smartedu5p.com/api/v1/search?schoolNPSN=${this.state.user?.school?.npsn}`,
+      )
+      .then(result => {
+        const listGuru = result.data.data.data
+          .filter(user => user.role === 'guru')
+          .map(guru => {
+            return {label: guru.fullName, value: guru.fullName, id: guru.id};
+          });
+        const listSiswa = result.data.data.data
+          .filter(
+            user => user.role === 'siswa' && user.id !== this.state.user.id,
+          )
+          .map(siswa => {
+            return {label: siswa.fullName, value: siswa.fullName, id: siswa.id};
+          });
+        this.setState({
+          dataPembimbing: listGuru,
+          dataAnggota: listSiswa,
+        });
+      });
 
     axios
       .get(
@@ -56,10 +141,30 @@ export default class EditProject extends Component {
           ketua: project.chairman.fullName,
           // anggota: project.members.map(member => member.fullName).join(', '),
           // tanggal: project.tanggal,
+          selectedPembimbing: project.teacher?.fullName,
+          idSelectedPembimbing: project.teacher?.id,
+          selectedAnggota: project.members?.map(member => member.fullName),
+          idSelectedAnggota: project.members?.map(member => member.id),
         });
       });
     // });
   }
+
+  fetchDataAnggota = async text => {
+    try {
+      const result = await axios.get(
+        `https://api-dev.smartedu5p.com/api/v1/search?user=${text}&schoolNPSN=${this.state.user?.school?.npsn}&role=siswa`,
+      );
+      let data = result.data.data.data;
+      data = data.filter(user => user.id !== this.state.user.id);
+      const listSiswa = data.map(siswa => {
+        return {label: siswa.fullName, value: siswa.fullName, id: siswa.id};
+      });
+      this.setState({
+        dataAnggota: listSiswa,
+      });
+    } catch (error) {}
+  };
 
   onChangeText = (nameState, value) => {
     this.setState({
@@ -67,60 +172,66 @@ export default class EditProject extends Component {
     });
   };
 
-  onSubmit = () => {
-    if (
-      this.state.topik &&
-      this.state.project &&
-      this.state.deskripsi
-      // this.state.kelompok &&
-      // this.state.pembimbing &&
-      // this.state.ketua &&
-      // this.state.anggota &&
-      // this.state.tanggal
-    ) {
-      axios
-        .patch(
-          `https://api-dev.smartedu5p.com/api/v1/projects/${this.props.route.params.id}`,
+  onSubmit = async () => {
+    const {topik, project, deskripsi} = this.state;
+    if (!topik)
+      return Alert.alert('Fail', 'Silahkan isi topik terlebih dahulu');
+    if (!project)
+      return Alert.alert('Fail', 'Silahkan isi judul project terlebih dahulu');
+    if (!deskripsi)
+      return Alert.alert(
+        'Fail',
+        'Silahkan isi deskripsi project terlebih dahulu',
+      );
+
+    axios
+      .patch(
+        `https://api-dev.smartedu5p.com/api/v1/projects/${this.props.route.params.id}`,
+        {
+          topic: topik,
+          name: project,
+          description: deskripsi,
+          teacher: this.state.idSelectedPembimbing,
+          members: this.state.idSelectedAnggota,
+        },
+      )
+      .then(() => {
+        Alert.alert('Sukses', 'Terimakasih data sudah terupdate', [
           {
-            topic: this.state.topik,
-            name: this.state.project,
-            description: this.state.deskripsi,
+            text: 'OK',
+            onPress: () => {
+              this.props.navigation.replace('Project');
+            },
           },
-        )
-        .then(() => {
-          Alert.alert('Sukses', 'Terimakasih data sudah terupdate');
-          this.props.navigation.replace('Project');
-        })
-        .catch(error => {
-          console.error('Error : ', error.response);
-        });
+        ]);
+      })
+      .catch(error => {
+        Alert.alert('Error', error.response.data.message);
+      });
 
-      // const kontakReferensi = FIREBASE.database().ref(
-      //   'Kontak/' + this.props.route.params.id,
-      // );
-      // const kontak = {
-      //   topik: this.state.topik,
-      //   project: this.state.project,
-      //   deskripsi: this.state.deskripsi,
-      //   kelompok: this.state.kelompok,
-      //   pembimbing: this.state.pembimbing,
-      //   ketua: this.state.ketua,
-      //   anggota: this.state.anggota,
-      //   tanggal: this.state.tanggal,
-      // };
+    // const kontakReferensi = FIREBASE.database().ref(
+    //   'Kontak/' + this.props.route.params.id,
+    // );
+    // const kontak = {
+    //   topik: this.state.topik,
+    //   project: this.state.project,
+    //   deskripsi: this.state.deskripsi,
+    //   kelompok: this.state.kelompok,
+    //   pembimbing: this.state.pembimbing,
+    //   ketua: this.state.ketua,
+    //   anggota: this.state.anggota,
+    //   tanggal: this.state.tanggal,
+    // };
 
-      // kontakReferensi
-      //   .update(kontak)
-      //   .then(data => {
-      //     Alert.alert('Sukses', 'Terimakasih kontak sudah terupdate');
-      //     this.props.navigation.replace('Project');
-      //   })
-      //   .catch(error => {
-      //     console.log('Error :', error);
-      //   });
-    } else {
-      Alert.alert('Error', 'Semua wajib diisi');
-    }
+    // kontakReferensi
+    //   .update(kontak)
+    //   .then(data => {
+    //     Alert.alert('Sukses', 'Terimakasih kontak sudah terupdate');
+    //     this.props.navigation.replace('Project');
+    //   })
+    //   .catch(error => {
+    //     console.log('Error :', error);
+    //   });
   };
 
   render() {
@@ -149,41 +260,95 @@ export default class EditProject extends Component {
             value={this.state.deskripsi}
             nameState="deskripsi"
           />
-          <InputData
+          {/* <InputData
             label="Kelompok"
             placeholder="Masukkan Nama Kelompok"
             onChangeText={this.onChangeText}
             value={this.state.kelompok}
             nameState="kelompok"
-          />
-          <InputData
+          /> */}
+          {/* <InputData
             label="Pembimbing"
             placeholder="Masukkan nama pembimbing"
             onChangeText={this.onChangeText}
             value={this.state.pembimbing}
             nameState="pembimbing"
-          />
+          /> */}
+          <View>
+            <Text style={styles.label}>Pembimbing :</Text>
+            <DropDownPicker
+              placeholder="Pilih guru pembimbing"
+              zIndex={5001}
+              open={this.state.openPembimbing}
+              value={this.state.selectedPembimbing}
+              items={this.state.dataPembimbing}
+              setOpen={this.setOpenPembimbing}
+              setValue={this.setSelectedPembimbing}
+              setItems={this.setDataPembimbing}
+              onSelectItem={item =>
+                this.setState({
+                  idSelectedPembimbing: item.id,
+                })
+              }
+              style={{
+                ...styles.textinput,
+                backgroundColor: '#f5f5f5',
+              }}
+              dropDownContainerStyle={{
+                borderColor: '#c4c4c4',
+                borderRadius: 10,
+              }}
+              textStyle={{
+                color: '#575757',
+              }}
+            />
+          </View>
           <InputData
             label="Ketua"
             placeholder="Masukkan nama ketua"
             onChangeText={this.onChangeText}
             value={this.state.ketua}
             nameState="ketua"
+            readOnly={true}
           />
-          <InputData
-            label="Anggota"
-            placeholder="Masukkan nama anggota"
-            onChangeText={this.onChangeText}
-            value={this.state.anggota}
-            nameState="anggota"
-          />
-          <InputData
-            label="Tanggal"
-            placeholder="Tanggal Pelaksanaan"
-            onChangeText={this.onChangeText}
-            value={this.state.tanggal}
-            nameState="tanggal"
-          />
+          <View>
+            <Text style={styles.label}>Anggota :</Text>
+            <DropDownPicker
+              multiple={true}
+              placeholder="Pilih anggota"
+              mode="BADGE"
+              dropDownDirection="BOTTOM"
+              zIndex={5000}
+              open={this.state.openAnggota}
+              value={this.state.selectedAnggota}
+              items={this.state.dataAnggota}
+              setOpen={this.setOpenAnggota}
+              setValue={this.setSelectedAnggota}
+              setItems={this.setDataAnggota}
+              onSelectItem={items => {
+                items = items.map(item => item.id);
+                this.setState({
+                  idSelectedAnggota: items,
+                });
+              }}
+              style={{
+                ...styles.textinput,
+                backgroundColor: '#f5f5f5',
+              }}
+              dropDownContainerStyle={{
+                borderColor: '#c4c4c4',
+                borderRadius: 10,
+              }}
+              textStyle={{
+                color: '#575757',
+              }}
+              searchable={true}
+              searchPlaceholder="Cari nama anggotamu"
+              onChangeSearchText={text => {
+                this.fetchDataAnggota(text);
+              }}
+            />
+          </View>
         </View>
         <View style={styles.button}>
           <TouchableOpacity onPress={() => this.onSubmit()}>
@@ -224,6 +389,19 @@ const styles = StyleSheet.create({
     paddingTop: 15,
     alignItems: 'flex-end',
     paddingRight: 20,
+  },
+  label: {
+    fontSize: 15,
+    paddingBottom: 5,
+    paddingTop: 5,
+  },
+  textinput: {
+    color: '#000000',
+    borderWidth: 1,
+    borderColor: 'grey',
+    borderRadius: 7,
+    // paddingTop: 10,
+    paddingLeft: 10,
   },
   login: {
     borderRadius: 7,

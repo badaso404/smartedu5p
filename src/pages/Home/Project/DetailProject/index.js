@@ -61,7 +61,9 @@ export default class DetailProject extends Component {
 
         <Text style={styles.judul}>Anggota :</Text>
         <Text style={styles.text}>
-          {kontak.members?.length > 0 ? kontak.members : 'Belom ada anggota'}
+          {kontak.members?.length > 0
+            ? kontak.members.map(member => member.fullName).join(', ')
+            : 'Belom ada anggota'}
         </Text>
 
         <Text style={styles.judul}>Tanggal :</Text>

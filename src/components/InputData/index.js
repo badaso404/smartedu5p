@@ -9,6 +9,7 @@ const InputData = ({
   onChangeText,
   value,
   nameState,
+  readOnly,
 }) => {
   if (isTextArea) {
     return (
@@ -34,6 +35,7 @@ const InputData = ({
         style={styles.textinput}
         value={value}
         onChangeText={text => onChangeText(nameState, text)}
+        readOnly={readOnly}
       />
     </>
   );
@@ -48,6 +50,7 @@ const styles = StyleSheet.create({
     paddingTop: 5,
   },
   textinput: {
+    color: '#000000',
     borderWidth: 1,
     borderColor: 'grey',
     borderRadius: 7,
