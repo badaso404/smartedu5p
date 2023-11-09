@@ -14,29 +14,36 @@ import LinearGradient from 'react-native-linear-gradient';
 import {LinearTextGradient} from 'react-native-text-gradient';
 import axios from 'axios';
 
-
 const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigation = useNavigation();
-  const postLogin = async function(){
-    const {data} = await axios.post('https://api-dev.smartedu5p.com/api/v1/users/login', {
-      email, password
-    }) 
-    return data.data;
-  }
+  const postLogin = async function () {
+    const result = await axios.post(
+      'https://api-dev.smartedu5p.com/api/v1/users/login',
+      {
+        email,
+        password,
+      },
+    );
+    return result.data.data;
+  };
   return (
     <View style={{flex: 1, backgroundColor: '#f7f6fd'}}>
       <Image source={Logo} style={styles.logo} resizeMode="contain" />
       <LinearTextGradient
-        style={{fontFamily: 'TitilliumWeb-Bold', paddingTop:390, position: 'absolute', paddingLeft: 150, fontSize:16}}
+        style={{
+          fontFamily: 'TitilliumWeb-Bold',
+          paddingTop: 390,
+          position: 'absolute',
+          paddingLeft: 150,
+          fontSize: 16,
+        }}
         locations={[0, 1]}
         start={{x: 0.0, y: 0.0}}
-          end={{x: 1.0, y: 0.0}}
-          colors={['#009FFF', '#ec2F4B']}>
-        <Text>
-        Selamat Datang
-        </Text>
+        end={{x: 1.0, y: 0.0}}
+        colors={['#009FFF', '#ec2F4B']}>
+        <Text>Selamat Datang</Text>
       </LinearTextGradient>
 
       <TextInput
@@ -75,16 +82,15 @@ const SignIn = () => {
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-      onPress={async () => {
-        const data = await postLogin();
-        // if(data.status !== 'success'){
-        //   return 
-        // }
-        if(data.user.role === 'guru'){
-        navigation.navigate('MainApp1')
-        }
-        if(data.user.role === 'siswa')
-        navigation.navigate('MainApp')
+        onPress={async () => {
+          const data = await postLogin();
+          // if(data.status !== 'success'){
+          //   return
+          // }
+          if (data.user.role === 'guru') {
+            navigation.navigate('MainApp1');
+          }
+          if (data.user.role === 'siswa') navigation.navigate('MainApp');
         }}
         style={{
           marginTop: 40,

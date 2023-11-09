@@ -364,7 +364,7 @@ export default class EditProject extends Component {
                   color: 'white',
                   textAlign: 'center',
                 }}>
-                Buat
+                Simpan
               </Text>
             </LinearGradient>
           </TouchableOpacity>

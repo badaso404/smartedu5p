@@ -10,6 +10,8 @@ const InputData = ({
   value,
   nameState,
   readOnly,
+  keyboardType = 'default',
+  maxLength,
 }) => {
   if (isTextArea) {
     return (
@@ -34,6 +36,8 @@ const InputData = ({
         placeholder={placeholder}
         style={styles.textinput}
         value={value}
+        keyboardType={keyboardType}
+        maxLength={maxLength}
         onChangeText={text => onChangeText(nameState, text)}
         readOnly={readOnly}
       />
