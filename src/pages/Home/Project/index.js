@@ -25,6 +25,7 @@ export default class Project extends Component {
     this.state = {
       kontaks: {},
       kontaksKey: [],
+      user: {},
     };
   }
 
@@ -53,6 +54,12 @@ export default class Project extends Component {
       this.setState({
         kontaks: data.projects,
         kontaksKey: Object.keys(data.projects),
+      });
+    });
+
+    axios.get('https://api-dev.smartedu5p.com/api/v1/users/me').then(result => {
+      this.setState({
+        user: result.data.data.user,
       });
     });
   };
@@ -89,7 +96,7 @@ export default class Project extends Component {
   };
 
   render() {
-    const {kontaks, kontaksKey} = this.state;
+    const {kontaks, kontaksKey, user} = this.state;
     return (
       <View style={styles.page}>
         <ImageBackground source={Header1} style={styles.header1}>
@@ -106,6 +113,7 @@ export default class Project extends Component {
                 key={item.id}
                 kontakItem={item}
                 id={item.id}
+                user={user}
                 {...this.props}
                 removeData={this.removeData}
               />
@@ -115,13 +123,15 @@ export default class Project extends Component {
           )}
         </View>
 
-        <View style={styles.wrapbutton}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate('TambahProject')}>
-            <FontAwesomeIcon icon={faPlus} size={25} color="white" />
-          </TouchableOpacity>
-        </View>
+        {this.state.user?.role === 'siswa' ? (
+          <View style={styles.wrapbutton}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => navigation.navigate('TambahProject')}>
+              <FontAwesomeIcon icon={faPlus} size={25} color="white" />
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
     );
   }

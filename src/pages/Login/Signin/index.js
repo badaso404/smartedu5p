@@ -7,6 +7,7 @@ import {
   Image,
   Dimensions,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import Logo from '../../../assets/Images/Logo.png';
@@ -19,14 +20,22 @@ const SignIn = () => {
   const [password, setPassword] = useState('');
   const navigation = useNavigation();
   const postLogin = async function () {
-    const result = await axios.post(
-      'https://api-dev.smartedu5p.com/api/v1/users/login',
-      {
-        email,
-        password,
-      },
-    );
-    return result.data.data;
+    try {
+      const result = await axios.post(
+        'https://api-dev.smartedu5p.com/api/v1/users/login',
+        {
+          email,
+          password,
+        },
+      );
+      const data = result.data?.data;
+      if (data?.user.role === 'guru') {
+        navigation.navigate('MainApp1');
+      }
+      if (data?.user.role === 'siswa') navigation.navigate('MainApp');
+    } catch (error) {
+      Alert.alert('Error', `${error.response?.data.message}`);
+    }
   };
   return (
     <View style={{flex: 1, backgroundColor: '#f7f6fd'}}>
@@ -82,15 +91,8 @@ const SignIn = () => {
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={async () => {
-          const data = await postLogin();
-          // if(data.status !== 'success'){
-          //   return
-          // }
-          if (data.user.role === 'guru') {
-            navigation.navigate('MainApp1');
-          }
-          if (data.user.role === 'siswa') navigation.navigate('MainApp');
+        onPress={() => {
+          postLogin();
         }}
         style={{
           marginTop: 40,

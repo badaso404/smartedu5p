@@ -29,5 +29,5 @@ export default class Slider extends Component {
 const styles = StyleSheet.create({
   news: {
     borderRadius: 20,
-  }
+  },
 });

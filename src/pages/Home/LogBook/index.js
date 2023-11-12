@@ -6,6 +6,7 @@ import {
   Dimensions,
   TouchableOpacity,
   Alert,
+  ScrollView,
 } from 'react-native';
 import React, {Component} from 'react';
 import {useNavigation} from '@react-navigation/native';
@@ -25,6 +26,7 @@ export default class Logbook extends Component {
     this.state = {
       kontaklog: {},
       kontaklogKey: [],
+      user: {},
     };
   }
 
@@ -46,14 +48,22 @@ export default class Logbook extends Component {
       });
   };
 
-  ambilDataApi = () => {
-    axios.get('https://api-dev.smartedu5p.com/api/v1/logbooks').then(result => {
+  ambilDataApi = async () => {
+    try {
+      const result = await axios.get(
+        'https://api-dev.smartedu5p.com/api/v1/logbooks?sort=-date',
+      );
       const data = result.data.data;
       this.setState({
-        kontaklog: data,
-        kontaklogKey: Object.keys(data),
+        kontaklog: data.logbooks,
       });
-    });
+      const dataUser = await axios.get(
+        'https://api-dev.smartedu5p.com/api/v1/users/me',
+      );
+      this.setState({
+        user: dataUser.data.data.user,
+      });
+    } catch (error) {}
   };
 
   removeData = id => {
@@ -66,7 +76,6 @@ export default class Logbook extends Component {
       {
         text: 'OK',
         onPress: () => {
-          console.log(id);
           axios
             .delete(`https://api-dev.smartedu5p.com/api/v1/logbooks/${id}`)
             .then(() => {
@@ -75,7 +84,10 @@ export default class Logbook extends Component {
             })
             .catch(error => {
               Alert.alert('Error', 'Logbook gagal dihapus. Silahkan coba lagi');
-              console.error(`Error : ${error.message}`);
+              console.log(
+                `Error : ${error.message}`,
+                error.response?.data.message,
+              );
             });
           // FIREBASE.database()
           //   .ref('LogBook/' + id)
@@ -88,7 +100,7 @@ export default class Logbook extends Component {
   };
 
   render() {
-    const {kontaklog, kontaklogKey} = this.state;
+    const {kontaklog, kontaklogKey, user} = this.state;
     return (
       <View style={styles.page}>
         <ImageBackground source={Header1} style={styles.header1}>
@@ -98,29 +110,34 @@ export default class Logbook extends Component {
           </View>
         </ImageBackground>
 
-        <View style={styles.project1}>
-          {kontaklog.length > 0 ? (
-            kontaklog.map(item => (
-              <CardProject1
-                key={item.id}
-                kontakItems={item}
-                id={item.id}
-                {...this.props}
-                removeData={this.removeData}
-              />
-            ))
-          ) : (
-            <Text>Daftar Kosong</Text>
-          )}
-        </View>
+        <ScrollView>
+          <View style={{...styles.project1, marginBottom: 60}}>
+            {kontaklog.length > 0 ? (
+              kontaklog.map(item => (
+                <CardProject1
+                  key={item._id}
+                  kontakItems={item}
+                  id={item.id}
+                  user={user}
+                  {...this.props}
+                  removeData={this.removeData}
+                />
+              ))
+            ) : (
+              <Text>Daftar Kosong</Text>
+            )}
+          </View>
+        </ScrollView>
 
-        <View style={styles.wrapbutton}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate('TambahLogbook')}>
-            <FontAwesomeIcon icon={faPlus} size={25} color="white" />
-          </TouchableOpacity>
-        </View>
+        {this.state.user?.role === 'siswa' ? (
+          <View style={styles.wrapbutton}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => navigation.navigate('TambahLogbook')}>
+              <FontAwesomeIcon icon={faPlus} size={25} color="white" />
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
     );
   }

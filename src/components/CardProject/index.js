@@ -9,7 +9,7 @@ import React from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome';
 import {faEdit, faTimes} from '@fortawesome/free-solid-svg-icons';
 
-const CardProject = ({id, kontakItem, navigation, removeData}) => {
+const CardProject = ({id, kontakItem, navigation, removeData, user}) => {
   return (
     <TouchableOpacity
       style={styles.container}
@@ -20,15 +20,19 @@ const CardProject = ({id, kontakItem, navigation, removeData}) => {
         <Text style={styles.tanggal}>Deskripsi : {kontakItem.description}</Text>
       </View>
       <View style={styles.icon}>
-        <Pressable
-          onPress={() =>
-            navigation.navigate('EditProject', {id: kontakItem.id})
-          }>
-          <FontAwesomeIcon icon={faEdit} color="#03a9f4" size={25} />
-        </Pressable>
-        <Pressable onPress={() => removeData(id)}>
-          <FontAwesomeIcon icon={faTimes} color="#FB0000" size={30} />
-        </Pressable>
+        {user.role === 'siswa' ? (
+          <Pressable
+            onPress={() =>
+              navigation.navigate('EditProject', {id: kontakItem.id})
+            }>
+            <FontAwesomeIcon icon={faEdit} color="#03a9f4" size={25} />
+          </Pressable>
+        ) : null}
+        {user.role === 'siswa' ? (
+          <Pressable onPress={() => removeData(id)}>
+            <FontAwesomeIcon icon={faTimes} color="#FB0000" size={30} />
+          </Pressable>
+        ) : null}
       </View>
     </TouchableOpacity>
   );

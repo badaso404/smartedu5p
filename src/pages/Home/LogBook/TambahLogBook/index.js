@@ -6,6 +6,7 @@ import {
   Alert,
   Button,
   Image,
+  Dimensions,
 } from 'react-native';
 import React, {Component} from 'react';
 import LinearGradient from 'react-native-linear-gradient';
@@ -13,8 +14,7 @@ import {InputData} from '../../../../components';
 import FIREBASE from '../../../../config/FIREBASE';
 import axios from 'axios';
 import DocumentPicker from 'react-native-document-picker';
-import {Platform} from 'react-native';
-
+import RNFS from 'react-native-fs';
 export default class TambahLogbook extends Component {
   constructor(props) {
     super(props);
@@ -35,15 +35,29 @@ export default class TambahLogbook extends Component {
 
   openGallery = async () => {
     try {
-      const images = await DocumentPicker.pick({
+      let images = await DocumentPicker.pick({
         allowMultiSelection: true,
         type: DocumentPicker.types.images,
         presentationStyle: 'fullScreen',
       });
+      images = await Promise.all(
+        images.map(async image => {
+          if (image.uri.startsWith('content://')) {
+            const destPath = `${RNFS.TemporaryDirectoryPath}/${image.name}`;
+            await RNFS.copyFile(image.uri, destPath);
+            image.uri = `file://${destPath}`;
+          }
+          return {
+            fileCopyUri: image.fileCopyUri,
+            name: image.name,
+            type: image.type,
+            uri: image.uri,
+          };
+        }),
+      );
       this.setState({
         berkas: images,
       });
-      console.log(this.state.berkas);
     } catch (error) {}
   };
 
@@ -70,28 +84,23 @@ export default class TambahLogbook extends Component {
     const formLogbook = new FormData();
     formLogbook.append('activity', this.state.aktivitas);
     const dateLogbook = this.state.pelaksanaan?.split('-');
-    const dateFormLogbook = new Date(
-      +dateLogbook[2],
-      +dateLogbook[1] - 1,
-      +dateLogbook[0],
-    );
+    const dateFormLogbook = `${dateLogbook[1]}-${dateLogbook[0]}-${dateLogbook[2]}`;
     formLogbook.append('date', dateFormLogbook);
     formLogbook.append('time', this.state.waktu);
-    // TODO: append foto berkas di form
+    // DONE: append file to formData
     this.state.berkas.forEach(item => {
       formLogbook.append('supportFile', {
         name: item.name,
         type: item.type,
-        uri: Platform.OS === 'ios' ? item.uri.replace('file://', '') : item.uri,
+        uri: item.uri,
       });
     });
 
-    console.log(JSON.stringify(formLogbook));
-    return;
     axios
       .post('https://api-dev.smartedu5p.com/api/v1/logbooks', formLogbook, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          Accept: 'application/json, text/plain, /',
+          'content-type': 'multipart/form-data',
         },
       })
       .then(result => {
@@ -99,9 +108,7 @@ export default class TambahLogbook extends Component {
         this.props.navigation.replace('Logbook');
       })
       .catch(error => {
-        console.log(error);
-        console.error(error);
-        // console.error(`Error : ${error.response.data.message}`);
+        console.log(error, error.response);
       });
 
     // kontakLogbook
@@ -121,7 +128,7 @@ export default class TambahLogbook extends Component {
         <View style={styles.form}>
           <InputData
             label="Tanggal Pelaksanaan"
-            placeholder="Masukkan tanggal pelaksanaan (DD-MM-YYYY)"
+            placeholder="Masukkan tanggal pelaksanaan (01-01-2023)"
             onChangeText={this.onChangeText}
             value={this.state.pelaksanaan}
             nameState="pelaksanaan"
@@ -147,30 +154,31 @@ export default class TambahLogbook extends Component {
           <Button title="Select Image" onPress={this.openGallery}></Button>
           {this.state.berkas.length > 0 ? (
             <Text style={{fontSize: 12}}>
-              File : {this.state.berkas.map(berkas => berkas.name).join(', ')}\n
-              URI :{' '}
-              {this.state.berkas
-                .map(berkas => convertContentUriToFilePath(berkas.uri))
-                .join('\n')}
+              File : {this.state.berkas.map(berkas => berkas.name).join(', ')}
             </Text>
           ) : null}
           {this.state.berkas.length > 0 ? (
-            <View>
-              {this.state.berkas.forEach(item => {
-                <Image
-                  source={{
-                    uri: `D:\\Programming\\Project\\front-end-smartedu5p\\src\\assets\\Images\\Logo.png`,
-                  }}></Image>;
+            <View
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                flexDirection: 'row',
+                gap: 4,
+                marginTop: 2,
+              }}>
+              {this.state.berkas.map(item => {
+                return (
+                  <Image
+                    key={item.name}
+                    style={{width: 100, height: 100}}
+                    source={{
+                      uri: item.uri,
+                    }}></Image>
+                );
               })}
             </View>
           ) : null}
-          {/* <InputData
-            label="Berkas"
-            placeholder="Bukti Kegiatan"
-            onChangeText={this.onChangeText}
-            value={this.state.berkas}
-            nameState="berkas"
-          /> */}
         </View>
         <View style={styles.button}>
           <TouchableOpacity onPress={() => this.onSubmit()}>
@@ -196,6 +204,9 @@ export default class TambahLogbook extends Component {
   }
 }
 
+const windowWidth = Dimensions.get('window').width;
+const windowHeight = Dimensions.get('window').height;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -218,5 +229,10 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     width: 100,
     height: 30,
+  },
+  Image: {
+    width: windowWidth * 1,
+    height: windowHeight * 0.47,
+    marginTop: 20,
   },
 });

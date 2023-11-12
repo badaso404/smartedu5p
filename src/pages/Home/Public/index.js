@@ -5,6 +5,8 @@ import {
   Dimensions,
   Image,
   ScrollView,
+  Pressable,
+  Alert,
 } from 'react-native';
 import React, {Component} from 'react';
 import {ButtonIcon} from '../../../components';
@@ -12,6 +14,7 @@ import {Feed1, Feed2, Feed3, Feed4, Feed5} from '../../../assets';
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome';
 import {faComment, faHeart} from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
+import {SliderBox} from 'react-native-image-slider-box';
 
 export default class Public extends Component {
   constructor(props) {
@@ -19,37 +22,78 @@ export default class Public extends Component {
 
     this.state = {
       data: [],
+      idLikedProject: [],
     };
   }
 
   componentDidMount() {
     this.ambilDataApi();
+    this.getLikeCurrentUser();
   }
 
-  ambilDataApi = () => {
-    axios
-      .get('https://api-dev.smartedu5p.com/api/v1/projects?public=true')
-      .then(result => {
-        const data = result.data.data.projects;
+  ambilDataApi = async () => {
+    const result = await axios.get(
+      'https://api-dev.smartedu5p.com/api/v1/projects?public=true&limit=100',
+    );
+    let data = result.data.data.projects;
+    const dataPromise = data.map(async item => {
+      try {
+        const result = await axios.get(
+          `https://api-dev.smartedu5p.com/api/v1/users/${item.teacher}`,
+        );
+        item.teacher = result.data.data.user;
+        return item;
+      } catch (error) {
+        console.log(error, error.response?.data.message);
+      }
+    });
+    data = await Promise.all(dataPromise);
+    this.setState({data});
+  };
 
-        data.map(item => {
-          // https://api-dev.smartedu5p.com/api/v1/users/me
-          if (item.teacher) {
-            axios
-              .get(
-                `https://api-dev.smartedu5p.com/api/v1/users/${item.teacher}`,
-              )
-              .then(result => {
-                item.teacher = result.data.user;
-              });
-          }
-          return item;
-        });
-
-        this.setState({
-          data: data,
-        });
+  likeProject = async idProject => {
+    try {
+      await axios.post('https://api-dev.smartedu5p.com/api/v1/likes', {
+        project: idProject,
       });
+      Alert.alert('Sukses', 'Berhasil like');
+      this.getLikeCurrentUser();
+    } catch (error) {
+      Alert.alert('Error', 'Gagal like. Silahkan coba lagi.');
+    }
+  };
+
+  unlikeProject = async idProject => {
+    try {
+      await axios.delete('https://api-dev.smartedu5p.com/api/v1/likes', {
+        data: {
+          project: idProject,
+        },
+      });
+      Alert.alert('Sukses', 'Berhasil unlike');
+      this.getLikeCurrentUser();
+    } catch (error) {
+      console.log(error, error.response?.data.message);
+      Alert.alert('Error', 'Gagal unlike. Silahkan coba lagi.');
+    }
+  };
+
+  getLikeCurrentUser = async () => {
+    try {
+      const result = await axios.get(
+        'https://api-dev.smartedu5p.com/api/v1/likes?limit=1000',
+      );
+      const data = result.data.data.likedProjectByUser;
+      this.setState({
+        idLikedProject: data.map(data => data.project.id),
+      });
+    } catch (error) {
+      if (error.response?.status === 404) {
+        this.setState({
+          idLikedProject: [],
+        });
+      }
+    }
   };
 
   render() {
@@ -58,40 +102,59 @@ export default class Public extends Component {
       <View style={styles.page}>
         <ScrollView>
           {projects.length > 0 ? (
-            projects?.forEach(project => {
-              <View style={styles.hello}>
-                <ButtonIcon title="" type="profile" />
-              </View>;
-              <View>
-                <Text style={styles.text}> SMAN 1 Solo</Text>
-              </View>;
-              <View>
-                <Image
-                  style={styles.Image}
-                  source={{
-                    uri: 'https://api-dev.smartedu5p.com/img/users/profile/default.png',
-                  }}></Image>
-              </View>;
-              <View style={styles.icon}>
-                <FontAwesomeIcon
-                  icon={faHeart}
-                  color="#FB0000"
-                  size={30}
-                  style={{marginRight: 15}}
-                />
-                <FontAwesomeIcon icon={faComment} color="#FB0000" size={30} />
-              </View>;
-              <View style={styles.caption}>
-                <Text style={{fontFamily: 'TitilliumWeb-Bold'}}>
-                  {' '}
-                  SMAN 1 Solo
-                </Text>
-                <Text style={{fontFamily: 'TitilliumWeb-Regular'}}>
-                  ini adalah karya salah satu siswi dari SMAN 1 Solo yang
-                  berteme membuat gambar 1 objek ini adalah karya salah satu
-                  siswi dari SMAN 1 Solo yang berteme membuat gambar 1 objek
-                </Text>
-              </View>;
+            projects?.map(project => {
+              return (
+                <View>
+                  <View style={styles.hello}>
+                    <ButtonIcon title="" type="profile" />
+                  </View>
+                  <View>
+                    <Text style={styles.text}>
+                      {` ${project.teacher?.school?.sekolah}`}
+                    </Text>
+                  </View>
+                  <View>
+                    <SliderBox
+                      style={styles.Image}
+                      images={project.result?.map(
+                        result =>
+                          `https://api-dev.smartedu5p.com/img/projects/results/${result}`,
+                      )}></SliderBox>
+                  </View>
+                  <View style={styles.icon}>
+                    <Pressable
+                      onPress={() => {
+                        !this.state.idLikedProject.includes(project.id)
+                          ? this.likeProject(project.id)
+                          : this.unlikeProject(project.id);
+                      }}>
+                      <FontAwesomeIcon
+                        icon={faHeart}
+                        color={
+                          this.state.idLikedProject.includes(project.id)
+                            ? '#ff0000'
+                            : '#bababa'
+                        }
+                        size={30}
+                        style={{marginRight: 15}}
+                      />
+                    </Pressable>
+                    <FontAwesomeIcon
+                      icon={faComment}
+                      color="#FB0000"
+                      size={30}
+                    />
+                  </View>
+                  <View style={styles.caption}>
+                    <Text style={{fontFamily: 'TitilliumWeb-Bold'}}>
+                      {` ${project.teacher?.school?.sekolah}`}
+                    </Text>
+                    <Text style={{fontFamily: 'TitilliumWeb-Regular'}}>
+                      {` ${project.description}`}
+                    </Text>
+                  </View>
+                </View>
+              );
             })
           ) : (
             <Text
@@ -102,126 +165,6 @@ export default class Public extends Component {
               Belum ada project yang terpublish
             </Text>
           )}
-
-          {/* <View style={styles.hello1}>
-            <ButtonIcon title="" type="profile" />
-          </View>
-          <View>
-            <Text style={styles.text}> SMAN 1 Sukoharjo</Text>
-          </View>
-          <View>
-            <Image style={styles.Image} source={Feed2}></Image>
-          </View>
-          <View style={styles.icon}>
-            <FontAwesomeIcon
-              icon={faHeart}
-              color="#FB0000"
-              size={30}
-              style={{marginRight: 15}}
-            />
-            <FontAwesomeIcon icon={faComment} color="#FB0000" size={30} />
-          </View>
-          <View style={styles.caption}>
-            <Text style={{fontFamily: 'TitilliumWeb-Bold'}}>
-              {' '}
-              SMAN 1 Sukoharjo
-            </Text>
-            <Text style={{fontFamily: 'TitilliumWeb-Regular'}}>
-              ini adalah karya salah satu siswi dari SMAN 1 Solo yang berteme
-              membuat gambar 1 objek ini adalah karya salah satu siswi dari SMAN
-              1 Solo yang berteme membuat gambar 1 objek
-            </Text>
-          </View>
-
-          <View style={styles.hello2}>
-            <ButtonIcon title="" type="profile" />
-          </View>
-          <View>
-            <Text style={styles.text}> SMAN 3 Sukoharjo</Text>
-          </View>
-          <View>
-            <Image style={styles.Image} source={Feed3}></Image>
-          </View>
-          <View style={styles.icon}>
-            <FontAwesomeIcon
-              icon={faHeart}
-              color="#FB0000"
-              size={30}
-              style={{marginRight: 15}}
-            />
-            <FontAwesomeIcon icon={faComment} color="#FB0000" size={30} />
-          </View>
-          <View style={styles.caption}>
-            <Text style={{fontFamily: 'TitilliumWeb-Bold'}}>
-              {' '}
-              SMAN 3 Sukoharjo
-            </Text>
-            <Text style={{fontFamily: 'TitilliumWeb-Regular'}}>
-              ini adalah karya salah satu siswi dari SMAN 1 Solo yang berteme
-              membuat gambar 1 objek ini adalah karya salah satu siswi dari SMAN
-              1 Solo yang berteme membuat gambar 1 objek
-            </Text>
-          </View>
-
-          <View style={styles.hello3}>
-            <ButtonIcon title="" type="profile" />
-          </View>
-          <View>
-            <Text style={styles.text}> SMAN 2 Surakarta</Text>
-          </View>
-          <View>
-            <Image style={styles.Image} source={Feed4}></Image>
-          </View>
-          <View style={styles.icon}>
-            <FontAwesomeIcon
-              icon={faHeart}
-              color="#FB0000"
-              size={30}
-              style={{marginRight: 15}}
-            />
-            <FontAwesomeIcon icon={faComment} color="#FB0000" size={30} />
-          </View>
-          <View style={styles.caption}>
-            <Text style={{fontFamily: 'TitilliumWeb-Bold'}}>
-              {' '}
-              SMAN 2 Surakarta
-            </Text>
-            <Text style={{fontFamily: 'TitilliumWeb-Regular'}}>
-              ini adalah karya salah satu siswi dari SMAN 1 Solo yang berteme
-              membuat gambar 1 objek ini adalah karya salah satu siswi dari SMAN
-              1 Solo yang berteme membuat gambar 1 objek
-            </Text>
-          </View>
-
-          <View style={styles.hello4}>
-            <ButtonIcon title="" type="profile" />
-          </View>
-          <View>
-            <Text style={styles.text}> SMAN 1 Karanganyar</Text>
-          </View>
-          <View>
-            <Image style={styles.Image} source={Feed5}></Image>
-          </View>
-          <View style={styles.icon}>
-            <FontAwesomeIcon
-              icon={faHeart}
-              color="#FB0000"
-              size={30}
-              style={{marginRight: 15}}
-            />
-            <FontAwesomeIcon icon={faComment} color="#FB0000" size={30} />
-          </View>
-          <View style={styles.caption}>
-            <Text style={{fontFamily: 'TitilliumWeb-Bold'}}>
-              {' '}
-              SMAN 1 Karanganyar
-            </Text>
-            <Text style={{fontFamily: 'TitilliumWeb-Regular'}}>
-              ini adalah karya salah satu siswi dari SMAN 1 Solo yang berteme
-              membuat gambar 1 objek ini adalah karya salah satu siswi dari SMAN
-              1 Solo yang berteme membuat gambar 1 objek
-            </Text>
-          </View> */}
         </ScrollView>
       </View>
     );
